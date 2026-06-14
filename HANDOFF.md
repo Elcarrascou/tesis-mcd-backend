@@ -27,7 +27,7 @@ Son **DOS repos git separados** dentro de `C:\Proyecto desarrollos antigravity\T
 | Carpeta | Repo git | Deploy | Estado |
 |---|---|---|---|
 | `web/` | `Elcarrascou/Tesis-MCD-USACH` (GitHub) | Vercel | ✅ Producción |
-| `backend/` | git local (sin remoto aún) | Railway (futuro) | 🚧 Fases A+B listas |
+| `backend/` | git local (sin remoto aún) | Railway (futuro) | 🚧 Fases A+B+C listas |
 
 - El git root de `web/` está atado a Vercel → por eso `backend/` es repo aparte
   (un monorepo exigiría re-enraizar y romper la integración con Vercel).
@@ -46,7 +46,7 @@ Son **DOS repos git separados** dentro de `C:\Proyecto desarrollos antigravity\T
   + cotizaciones Yahoo en vivo. Edge function `yahoo-finance` (inferencia DEMO).
 - Reglas de diseño y workflow en `web/CLAUDE.md` (leer antes de tocar la web).
 
-### Backend (`backend/`) — 🚧 Fases A y B listas
+### Backend (`backend/`) — 🚧 Fases A, B y C listas
 - **Python 3.12** (vía `py -3.12`). NO usar 3.14 (Prophet no la soporta bien).
   Ambas conviven. venv en `backend/.venv` (gitignored).
 - **Fase A** (commit `52612a4`): FastAPI (`/health`, `/`), `config.py`
@@ -116,13 +116,27 @@ pytest                                  # tests
 
 ## 7. LO QUE FALTA — plan de fases
 
-### Fase C — Backtesting y evaluación (SIGUIENTE) 📌
+### Fase C — Backtesting y evaluación ✅ (núcleo listo)
 Material clave para defender ante el comité.
-- `app/pipeline/backtest.py`: walk-forward sobre histórico Yahoo (foco IPSA + Dow).
-- Métricas: RMSE/MAE (LSTM, Prophet), accuracy/F1/AUC (XGBoost, RF), retorno
-  acumulado vs benchmark IPSA buy&hold.
-- Notebooks `backend/notebooks/` (entrenamiento + eval por modelo + backtest).
-- Guardar métricas en una tabla nueva `model_metrics` (Supabase) para mostrarlas en la web.
+- ✅ `app/ml/metrics.py`: métricas puras (RMSE, MAE, MAPE, dir-acc, accuracy,
+  F1 macro, retorno acumulado, Sharpe, max drawdown). Testeadas en `tests/test_metrics.py`.
+- ✅ `app/pipeline/backtest.py`: walk-forward **sin look-ahead** (ventana expansiva
+  con reentrenamiento por folds; cada predicción usa solo el pasado, igual que
+  producción vía `predict_one`).
+  - LSTM/Prophet → RMSE/MAE/MAPE/dir-acc · XGBoost/RF → accuracy/F1.
+  - Backtest de estrategia long-only (señal XGBoost) vs buy&hold del universo y
+    benchmarks de contexto.
+  - CLI: `python -m app.pipeline.backtest [--models …] [--symbols …]
+    [--retrain-folds N] [--max-symbols N] [--no-strategy] [--write]`.
+- ✅ Tabla `model_metrics` en Supabase (RLS, lectura pública) + `insert_metrics`.
+  `--write` la puebla. **PENDIENTE:** correr `--write` completo (6 símbolos, sin
+  reducir) para llenar la tabla — Prophet es lento (~10-15 min por refit Stan).
+- ✅ `notebooks/04_backtest_eval.ipynb` (eval + estrategia + gráficos).
+- **OJO IPSA:** Yahoo descontinuó `^IPSA` en 2019. Se usa el ETF **ECH** (iShares
+  MSCI Chile) como proxy del IPSA. `^DJI` (Dow) sigue vigente. Benchmarks en
+  `backtest.BENCHMARKS`.
+- **Mejora futura:** AUC ROC multiclase requiere exponer probabilidades en
+  `predict_one` (hoy solo top-class + confianza).
 
 ### Fase D — Agente IA (lógica, sin APIs de pago)
 - `app/agent/consolidate.py`: fusiona las 4 predicciones → score unificado por activo.

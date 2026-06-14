@@ -38,3 +38,10 @@ def insert_decisions(rows: list[dict]) -> None:
     if not rows:
         return
     get_client().table("ai_decisions").insert(rows).execute()
+
+
+def insert_metrics(rows: list[dict]) -> None:
+    """Inserta filas de evaluación/backtest en model_metrics."""
+    if not rows:
+        return
+    get_client().table("model_metrics").insert(rows).execute()
