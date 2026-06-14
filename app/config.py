@@ -31,6 +31,18 @@ class Settings(BaseSettings):
         "https://tesis-mcd-usach.vercel.app",
     ]
 
+    # ── Agente IA / LLM (Fase D) ──────────────────────────────
+    # Motor por defecto: Ollama local (gratis en dev). Si no responde, el router
+    # cae a 'rule-based' (razonamiento determinista). Las keys de pago se dejan
+    # para el final.
+    llm_engine: str = "ollama"  # ollama | anthropic | openai | rule-based
+    ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.1"
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-opus-4-8"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+
     # ── App ───────────────────────────────────────────────────
     app_name: str = "Tesis MCD USACH — Backend ML"
     debug: bool = False

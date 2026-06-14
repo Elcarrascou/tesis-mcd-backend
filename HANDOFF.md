@@ -27,7 +27,7 @@ Son **DOS repos git separados** dentro de `C:\Proyecto desarrollos antigravity\T
 | Carpeta | Repo git | Deploy | Estado |
 |---|---|---|---|
 | `web/` | `Elcarrascou/Tesis-MCD-USACH` (GitHub) | Vercel | ✅ Producción |
-| `backend/` | git local (sin remoto aún) | Railway (futuro) | 🚧 Fases A+B+C listas |
+| `backend/` | git local (sin remoto aún) | Railway (futuro) | 🚧 Fases A+B+C+D listas |
 
 - El git root de `web/` está atado a Vercel → por eso `backend/` es repo aparte
   (un monorepo exigiría re-enraizar y romper la integración con Vercel).
@@ -46,7 +46,7 @@ Son **DOS repos git separados** dentro de `C:\Proyecto desarrollos antigravity\T
   + cotizaciones Yahoo en vivo. Edge function `yahoo-finance` (inferencia DEMO).
 - Reglas de diseño y workflow en `web/CLAUDE.md` (leer antes de tocar la web).
 
-### Backend (`backend/`) — 🚧 Fases A, B y C listas
+### Backend (`backend/`) — 🚧 Fases A, B, C y D listas
 - **Python 3.12** (vía `py -3.12`). NO usar 3.14 (Prophet no la soporta bien).
   Ambas conviven. venv en `backend/.venv` (gitignored).
 - **Fase A** (commit `52612a4`): FastAPI (`/health`, `/`), `config.py`
@@ -94,6 +94,8 @@ $env:PYTHONUTF8=1                       # Windows: evita crash de encoding
 python -m app.pipeline.train            # reentrena los 4 modelos
 python -m app.pipeline.predict          # dry-run (imprime, no escribe)
 python -m app.pipeline.predict --write  # + escribe a Supabase
+python -m app.pipeline.backtest --write # Fase C: backtest → model_metrics
+python -m app.pipeline.decide --write   # Fase D: agente → ai_decisions
 uvicorn app.main:app --reload           # API local :8000 (/docs, /health)
 ruff check .                            # lint (lo que correrá el CI)
 pytest                                  # tests
@@ -138,12 +140,27 @@ Material clave para defender ante el comité.
 - **Mejora futura:** AUC ROC multiclase requiere exponer probabilidades en
   `predict_one` (hoy solo top-class + confianza).
 
-### Fase D — Agente IA (lógica, sin APIs de pago)
-- `app/agent/consolidate.py`: fusiona las 4 predicciones → score unificado por activo.
-- `app/agent/llm_router.py` + `prompts.py`: routing Claude/GPT/**Ollama local**
-  (usar Ollama gratis en dev; swap a keys de pago al final).
-- Genera registros en `ai_decisions` (action, confidence, rationale, engine).
-- Stub de ejecución: registra orden intencionada SIN tocar Alpaca.
+### Fase D — Agente IA "OpenClaw" ✅ (núcleo listo)
+- ✅ `app/agent/consolidate.py`: fusiona las 4 predicciones → **score unificado**
+  en [-1,1] (voto direccional ponderado LSTM/XGBoost/Prophet, riesgo del RF como
+  multiplicador) → acción `buy/sell/hold/rebalance` + confianza + rationale
+  determinista. Auditable y reproducible (la decisión NO la inventa el LLM).
+  Testeado en `tests/test_consolidate.py`.
+- ✅ `app/agent/prompts.py` + `llm_router.py`: el LLM solo **reescribe** el rationale.
+  Routing `ollama` (local, gratis, default) / `anthropic` / `openai`, con **fallback
+  limpio a `rule-based`** si el motor falla o no está (el pipeline nunca se rompe).
+  Config en `config.py` (`llm_engine`, `ollama_url/model`, `*_api_key`).
+- ✅ `app/agent/execute.py`: stub de ejecución — `intended_order()` registra la orden
+  intencionada (`status='intended'`, `broker=None`) SIN tocar Alpaca.
+- ✅ `app/pipeline/decide.py`: pipeline CLI `python -m app.pipeline.decide
+  [--symbols …] [--engine …] [--orders] [--write]`. `--write` inserta en
+  `ai_decisions`. Validado: 6 decisiones reales escritas (engine `rule-based`,
+  Ollama no estaba corriendo → fallback OK).
+- **Para usar Ollama:** instalar Ollama + `ollama pull llama3.1`, dejarlo corriendo;
+  el default ya apunta a `localhost:11434`. Para Claude/GPT: setear las keys en `.env`
+  y `--engine anthropic|openai` (dejar para el final, son de pago).
+- **Mejora futura:** dimensionar la orden (qty) según portfolio/peso; hoy el stub no
+  calcula cantidad.
 
 ### Fase E — Integración web ↔ backend
 - Versionar la edge function `yahoo-finance` en el repo (hoy solo vive en remoto Supabase).
