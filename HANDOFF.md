@@ -1,7 +1,12 @@
 # HANDOFF — Tesis MCD USACH · Portafolio de Inversiones Gestionado por IA
 
 Documento de traspaso para continuar el proyecto en una nueva instancia de chat.
-Última actualización: 2026-06-14. Autor: Daniel Carrasco U. (dacarrascu@gmail.com).
+Última actualización: 2026-06-14 (post Fase D). Autor: Daniel Carrasco U. (dacarrascu@gmail.com).
+
+**Estado en una línea:** Web en producción. Backend con Fases A→D listas (datos,
+4 modelos ML, backtesting+métricas, agente IA). **Siguiente: Fase E** (integrar
+web↔backend). Commits backend: `52612a4` (A) → `80c92d3` (B) → `cb6e89e` (C) →
+`7afcb59` (D).
 
 ---
 
@@ -162,10 +167,25 @@ Material clave para defender ante el comité.
 - **Mejora futura:** dimensionar la orden (qty) según portfolio/peso; hoy el stub no
   calcula cantidad.
 
-### Fase E — Integración web ↔ backend
-- Versionar la edge function `yahoo-finance` en el repo (hoy solo vive en remoto Supabase).
-- Endpoint FastAPI `/predict/{symbol}`; apuntar `StockAnalyzer` del portal al backend
-  real en vez de la inferencia demo de la edge function.
+### Fase E — Integración web ↔ backend (SIGUIENTE) 📌
+Objetivo: que la web muestre lo real que ya produce el backend. Datos ya escritos
+en Supabase: `ml_predictions` (72), `model_metrics` (92, Fase C), `ai_decisions`
+(6 reales `rule-based` + 5 demo, Fase D).
+- **Página/sección "Evaluación"** en el portal: leer `model_metrics` desde Supabase
+  JS (igual que `/portal/modelos` lee `ml_predictions`). Mostrar por modelo: RMSE/MAE
+  (LSTM, Prophet), accuracy/F1 (XGBoost, RF) y la tabla de estrategia vs benchmarks
+  (cum_return/Sharpe/maxDD; symbol NULL = global, task='strategy'/'benchmark').
+  Esto NO requiere backend corriendo (lee Supabase directo). **Empezar por aquí.**
+- **Decisiones IA del portal:** confirmar que `/portal/decisiones` lee `ai_decisions`
+  reales (no solo las demo). Filtrar/ordenar por `created_at`.
+- Endpoint FastAPI `/predict/{symbol}` (inferencia on-demand) + apuntar el
+  `StockAnalyzer` del portal al backend real en vez de la edge function demo.
+  Requiere backend desplegado (Fase F) o túnel local — dejar para después de la
+  página Evaluación.
+- Versionar la edge function `yahoo-finance` en el repo (hoy solo vive en Supabase remoto).
+- **OJO web:** repo `web/` aparte (GitHub `Elcarrascou/Tesis-MCD-USACH`, deploy Vercel).
+  Leer `web/CLAUDE.md` antes de tocarla. Credenciales Supabase de lectura (anon key)
+  ya están en la web; `model_metrics` tiene RLS con lectura pública.
 - Portal `/portal/modelos` ya lee `ml_predictions` → ya muestra predicciones reales.
 - Nueva página/sección portal **"Evaluación"**: lee `model_metrics` (RMSE, F1, retorno vs IPSA).
 
@@ -188,11 +208,36 @@ Material clave para defender ante el comité.
 - Backend = repo separado (no monorepo) por la atadura web↔Vercel.
 - Modelos ML **reales completos** (no ligeros) — es tesis MCD.
 - Docs (anteproyecto/presentación) al final.
+- Backtest **walk-forward sin look-ahead** (reentrena solo con pasado) — defendible.
+- Agente: decisión **determinista y auditable**; el LLM solo explica. Ollama local
+  por defecto con fallback `rule-based` (nunca rompe el pipeline). Keys de pago al final.
+- IPSA: Yahoo lo descontinuó en 2019 → proxy ETF **ECH**.
 - Preferencia del usuario: respuestas concisas en bullets al codear.
 
 ---
 
 ## 9. Primer paso en la nueva instancia
-> "Lee `backend/HANDOFF.md` y continúa con la Fase C (backtesting y evaluación)."
+> "Lee `backend/HANDOFF.md` y continúa con la Fase E (integración web↔backend),
+>  empezando por la página/sección **Evaluación** que lee `model_metrics`."
 
-Antes de codear: activar venv, `$env:PYTHONUTF8=1`, confirmar `pytest` verde.
+Antes de codear:
+- Backend: activar venv (`backend/.venv\Scripts\Activate.ps1`), `$env:PYTHONUTF8=1`,
+  confirmar `ruff check .` y `pytest` verdes (22 tests).
+- Web: `cd web`, leer `web/CLAUDE.md`, `npm install`, `npm run dev`.
+
+### Resumen de lo construido (Fases A–D)
+| Fase | Entregable | Estado | Commit |
+|---|---|---|---|
+| A | FastAPI + datos Yahoo + cliente Supabase | ✅ | `52612a4` |
+| B | 4 modelos ML reales (LSTM/XGB/Prophet/RF) | ✅ | `80c92d3` |
+| C | Backtesting walk-forward + `model_metrics` | ✅ | `cb6e89e` |
+| D | Agente IA (consolidación + LLM router + stub orden) | ✅ | `7afcb59` |
+| E | Integración web↔backend (página Evaluación, /predict) | 📌 siguiente | — |
+| F | Docker + Railway + cron + CI backend | ⏳ | — |
+
+Archivos clave del backend:
+- Modelos: `app/models/{lstm_price,xgb_signal,prophet_trend,rf_risk}.py` (interfaz `base.py`).
+- Pipelines CLI: `app/pipeline/{train,predict,backtest,decide}.py`.
+- Agente: `app/agent/{consolidate,llm_router,prompts,execute}.py`.
+- Métricas: `app/ml/metrics.py` · Features/labels: `app/ml/dataset.py`, `app/data/features.py`.
+- Tests: `tests/test_{features,dataset,health,metrics,consolidate}.py`.
