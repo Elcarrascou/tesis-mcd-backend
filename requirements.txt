@@ -1,0 +1,11 @@
+# ── Runtime (Fase A) ──────────────────────────────────────────
+# Las librerías de ML pesadas (torch, prophet, xgboost, scikit-learn)
+# se agregan en la Fase B. Aquí solo el esqueleto del servicio.
+fastapi>=0.115
+uvicorn[standard]>=0.34
+yfinance>=0.2.50
+pandas>=2.2
+numpy>=2.0
+supabase>=2.10
+pydantic-settings>=2.6
+httpx>=0.27
