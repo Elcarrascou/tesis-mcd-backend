@@ -1,15 +1,15 @@
 # HANDOFF — Tesis MCD USACH · Portafolio de Inversiones Gestionado por IA
 
 Documento de traspaso para continuar el proyecto en una nueva instancia de chat.
-Última actualización: 2026-06-15 (post Fase E). Autor: Daniel Carrasco U. (dacarrascu@gmail.com).
+Última actualización: 2026-06-15 (post Fase F código). Autor: Daniel Carrasco U. (dacarrascu@gmail.com).
 
-**Estado en una línea:** Web en producción. Backend Fases A→D listas + **Fase E
-completa** (web lee datos reales: página Evaluación, decisiones IA reales, edge
-function versionada). Backend ya **subido a GitHub** (`Elcarrascou/tesis-mcd-backend`,
-rama `main`). **Siguiente: Fase F** (deploy backend a Railway + cron + CI).
+**Estado en una línea:** Web en producción. Backend Fases A→E listas + **Fase F
+código completo** (Dockerfile, endpoint `/predict/{symbol}`, CI ruff+pytest 24 tests,
+cron GitHub Actions, artefactos commiteados) — pusheado a `main`. **Falta SOLO acción
+manual del usuario:** secrets del repo + crear proyecto Railway + apuntar la web al
+`/predict` real (ver Fase F → PENDIENTE).
 Commits backend: `52612a4` (A) → `80c92d3` (B) → `cb6e89e` (C) → `7afcb59` (D)
-→ `11b285a` (HANDOFF Fase E). Commits web Fase E: `b4a33f6` (página Evaluación)
-→ `0cffc32` (edge function versionada).
+→ `11b285a` (HANDOFF E) → `d4806d6` (F). Commits web Fase E: `b4a33f6` → `0cffc32`.
 
 ---
 
@@ -202,30 +202,44 @@ Objetivo: que la web muestre lo real que ya produce el backend. Datos en Supabas
   obligatorio: `npm run lint && npm run build`, commit, push, `npx vercel deploy
   --prod --yes`, `npx vercel alias set <url> tesis-mcd-usach.vercel.app`.
 
-### Fase F — Deploy backend (sin servicios de pago) 📌 SIGUIENTE
-Repo ya creado y subido: `Elcarrascou/tesis-mcd-backend` (rama `main`). Pasos:
-1. **`Dockerfile`** (no existe aún): base `python:3.12-slim` (NO 3.14 — Prophet).
-   Instalar deps de sistema para Prophet/cmdstanpy (`build-essential`). Deps Python
-   están **divididas**: `requirements.txt` (core/API), `requirements-ml.txt`
-   (PyTorch/Prophet/xgboost/sklearn — pesado), `requirements-dev.txt` (ruff/pytest);
-   también hay `pyproject.toml`. El Dockerfile de prod instala `requirements.txt` +
-   `requirements-ml.txt` (sin dev). Exponer `uvicorn app.main:app --host 0.0.0.0
-   --port $PORT`. `app/main.py` hoy solo tiene `/` y `/health`. Railway
-   inyecta `$PORT`. Imagen pesada (PyTorch+Prophet) → vigilar límites del free tier.
-2. **Deploy a Railway free:** crear proyecto, conectar el repo GitHub, setear envs
-   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (de `backend/.env`), `PYTHONUTF8=1`,
-   y opcional `LLM_ENGINE`/`OLLAMA_URL` (default `rule-based` si no hay Ollama).
-3. **Endpoint `/predict/{symbol}`** en `app/main.py` (hoy solo `/health` y `/`):
-   cargar modelos de `artifacts/` y devolver inferencia on-demand. OJO: `artifacts/`
-   está gitignored → o se entrenan en build (lento) o se versiona aparte / volumen
-   Railway. Decidir estrategia de artefactos.
-4. **Cron diario** `python -m app.pipeline.predict --write` (Railway cron o GitHub
-   Actions scheduled). Considerar también `backtest`/`decide` periódicos.
-5. **CI backend:** nuevo workflow GitHub Actions en `tesis-mcd-backend` (lint `ruff
-   check .` + `pytest`, 22 tests). El repo web ya tiene su CI; este es separado.
-6. **Healthcheck** Railway → `/health`. Verificar arranque y latencia de carga de modelos.
-7. Cerrar Fase E: una vez con URL pública del backend, apuntar `StockAnalyzer` al
-   `/predict` real (ver pendiente arriba) y desplegar la web.
+### Fase F — Deploy backend (sin servicios de pago) 🚧 CÓDIGO LISTO, falta acción manual
+Repo: `Elcarrascou/tesis-mcd-backend` (rama `main`). Commit Fase F: `d4806d6`.
+
+**✅ Hecho en código (commiteado y pusheado):**
+1. ✅ **`Dockerfile`** — `python:3.12-slim`, `build-essential`/gcc/g++ para
+   Prophet/cmdstanpy, instala `requirements-ml.txt` (core+ML, sin dev), copia `app/`
+   + `artifacts/`, `CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`.
+   `.dockerignore` excluye venv/.env/tests/notebooks/docs.
+2. ✅ **Endpoint `GET /predict/{symbol}`** (`app/api/predict.py`, montado en
+   `app/main.py`): inferencia on-demand de los 4 modelos. Modelos en singleton
+   `lru_cache` (carga 1 vez/proceso); Prophet refit on-the-fly. Lectura, NO escribe.
+   Respuesta `{symbol, in_universe, predictions[], errors{}}`. Probado vía TestClient
+   (NVDA → 200, 4 modelos OK).
+3. ✅ **Estrategia de artefactos DECIDIDA:** `lstm_price.pt`/`xgboost_signal.joblib`/
+   `random_forest_risk.joblib` (6.5MB) **commiteados** (force-add sobre gitignore) →
+   imagen determinista, sin reentrenar en build. Prophet no necesita artefacto.
+4. ✅ **CI** (`.github/workflows/ci.yml`): `ruff check .` + `pytest` en py3.12 (push/PR
+   a `main`). Instala `requirements-ml` + `requirements-dev`. **24 tests** (se sumó
+   `tests/test_predict.py`, mockea Yahoo/modelos → sin red en CI).
+5. ✅ **Cron** (`.github/workflows/predict-cron.yml`): GitHub Actions scheduled
+   `0 11 * * 1-5` (~07:00 Chile) + `workflow_dispatch` → `python -m app.pipeline.predict
+   --write`. Gratis, usa los artefactos del repo. Alternativa al cron de Railway.
+
+**⏳ PENDIENTE (acción manual del usuario — no automatizable desde aquí):**
+- **A. Secrets del repo GitHub** (para que corra el cron): en `tesis-mcd-backend` →
+  Settings → Secrets and variables → Actions → New repository secret:
+  `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (valores en `backend/.env`).
+- **B. Railway:** crear proyecto → Deploy from GitHub repo `Elcarrascou/tesis-mcd-backend`
+  (detecta el `Dockerfile`). Variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `PYTHONUTF8=1` (opcional `LLM_ENGINE=rule-based`). Healthcheck path `/health`.
+  Vigilar build (imagen PyTorch+Prophet pesada) y límites free tier.
+- **C. Verificar deploy:** `GET <railway-url>/health` → `{"status":"ok"}`;
+  `GET <railway-url>/predict/NVDA` → 4 predicciones. Medir latencia de arranque
+  (carga de modelos).
+- **D. Cerrar Fase E:** con la URL pública, apuntar `web/src/components/portal/
+  StockAnalyzer.tsx` al `/predict/{symbol}` real (hoy llama edge fn demo) + CORS:
+  agregar el dominio en `config.allowed_origins` si hace falta → deploy web
+  (lint→build→commit→push→vercel→alias, ver `web/CLAUDE.md`).
 
 ### DEJAR PARA EL FINAL (instrucción explícita del usuario)
 - 🔌 **Alpaca** — ejecución real de órdenes.
@@ -269,7 +283,7 @@ Antes de codear:
 | C | Backtesting walk-forward + `model_metrics` | ✅ | `cb6e89e` |
 | D | Agente IA (consolidación + LLM router + stub orden) | ✅ | `7afcb59` |
 | E | Web lee real: pág. Evaluación, decisiones IA, edge fn versionada | ✅ (falta `/predict`, depende de F) | web `b4a33f6`,`0cffc32` |
-| F | Docker + Railway + `/predict` + cron + CI backend | 📌 siguiente | — |
+| F | Docker + `/predict` + cron + CI backend (24 tests) | 🚧 código listo, falta Railway+secrets manual | `d4806d6` |
 
 Archivos clave del backend:
 - Modelos: `app/models/{lstm_price,xgb_signal,prophet_trend,rf_risk}.py` (interfaz `base.py`).
