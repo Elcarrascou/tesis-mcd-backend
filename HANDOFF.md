@@ -171,11 +171,13 @@ Material clave para defender ante el comité.
 Objetivo: que la web muestre lo real que ya produce el backend. Datos ya escritos
 en Supabase: `ml_predictions` (72), `model_metrics` (92, Fase C), `ai_decisions`
 (6 reales `rule-based` + 5 demo, Fase D).
-- **Página/sección "Evaluación"** en el portal: leer `model_metrics` desde Supabase
-  JS (igual que `/portal/modelos` lee `ml_predictions`). Mostrar por modelo: RMSE/MAE
-  (LSTM, Prophet), accuracy/F1 (XGBoost, RF) y la tabla de estrategia vs benchmarks
-  (cum_return/Sharpe/maxDD; symbol NULL = global, task='strategy'/'benchmark').
-  Esto NO requiere backend corriendo (lee Supabase directo). **Empezar por aquí.**
+- ✅ **Página "Evaluación"** del portal (`/portal/evaluacion`, `PortalEvaluacion.tsx`):
+  lee `model_metrics` vía `queries.getModelMetrics` (Supabase directo, RLS público,
+  sin backend). Tabla estrategia IA vs Buy&Hold/benchmarks ECH/^DJI (cum_return/
+  Sharpe/maxDD) + cards por modelo (LSTM/Prophet/XGBoost/RF) con métricas agregadas
+  del walk-forward (symbol NULL) y desglose por símbolo expandible. Ruta + ítem de
+  nav agregados; `database.types.ts` regenerado con `model_metrics`. Deployed.
+  Commit web `b4a33f6`.
 - **Decisiones IA del portal:** confirmar que `/portal/decisiones` lee `ai_decisions`
   reales (no solo las demo). Filtrar/ordenar por `created_at`.
 - Endpoint FastAPI `/predict/{symbol}` (inferencia on-demand) + apuntar el
