@@ -1,12 +1,15 @@
 # HANDOFF — Tesis MCD USACH · Portafolio de Inversiones Gestionado por IA
 
 Documento de traspaso para continuar el proyecto en una nueva instancia de chat.
-Última actualización: 2026-06-14 (post Fase D). Autor: Daniel Carrasco U. (dacarrascu@gmail.com).
+Última actualización: 2026-06-15 (post Fase E). Autor: Daniel Carrasco U. (dacarrascu@gmail.com).
 
-**Estado en una línea:** Web en producción. Backend con Fases A→D listas (datos,
-4 modelos ML, backtesting+métricas, agente IA). **Siguiente: Fase E** (integrar
-web↔backend). Commits backend: `52612a4` (A) → `80c92d3` (B) → `cb6e89e` (C) →
-`7afcb59` (D).
+**Estado en una línea:** Web en producción. Backend Fases A→D listas + **Fase E
+completa** (web lee datos reales: página Evaluación, decisiones IA reales, edge
+function versionada). Backend ya **subido a GitHub** (`Elcarrascou/tesis-mcd-backend`,
+rama `main`). **Siguiente: Fase F** (deploy backend a Railway + cron + CI).
+Commits backend: `52612a4` (A) → `80c92d3` (B) → `cb6e89e` (C) → `7afcb59` (D)
+→ `11b285a` (HANDOFF Fase E). Commits web Fase E: `b4a33f6` (página Evaluación)
+→ `0cffc32` (edge function versionada).
 
 ---
 
@@ -32,7 +35,16 @@ Son **DOS repos git separados** dentro de `C:\Proyecto desarrollos antigravity\T
 | Carpeta | Repo git | Deploy | Estado |
 |---|---|---|---|
 | `web/` | `Elcarrascou/Tesis-MCD-USACH` (GitHub) | Vercel | ✅ Producción |
-| `backend/` | git local (sin remoto aún) | Railway (futuro) | 🚧 Fases A+B+C+D listas |
+| `backend/` | `Elcarrascou/tesis-mcd-backend` (GitHub, rama `main`) | Railway (Fase F) | ✅ A→D + en GitHub |
+
+- **OJO ramas:** el backend local usa rama `master`, el remoto usa `main`
+  (`git push -u origin master:main` ya configurado, tracking `master`↔`origin/main`).
+- **Push backend sin `gh`:** `gh` NO está en PATH y el GitHub MCP dio "Bad credentials".
+  El push funcionó vía Git Credential Manager de Windows (mismo user Elcarrascou que
+  el repo web). Si un push falla por auth, usar git directo (no `gh`/MCP).
+- **Seguridad verificada antes de subir:** `.env` ignorado y nunca en historial;
+  solo `.env.example` (placeholders) trackeado. Escaneado todo el historial: sin
+  service_role JWT filtrado.
 
 - El git root de `web/` está atado a Vercel → por eso `backend/` es repo aparte
   (un monorepo exigiría re-enraizar y romper la integración con Vercel).
@@ -167,35 +179,53 @@ Material clave para defender ante el comité.
 - **Mejora futura:** dimensionar la orden (qty) según portfolio/peso; hoy el stub no
   calcula cantidad.
 
-### Fase E — Integración web ↔ backend (SIGUIENTE) 📌
-Objetivo: que la web muestre lo real que ya produce el backend. Datos ya escritos
-en Supabase: `ml_predictions` (72), `model_metrics` (92, Fase C), `ai_decisions`
-(6 reales `rule-based` + 5 demo, Fase D).
-- ✅ **Página "Evaluación"** del portal (`/portal/evaluacion`, `PortalEvaluacion.tsx`):
-  lee `model_metrics` vía `queries.getModelMetrics` (Supabase directo, RLS público,
-  sin backend). Tabla estrategia IA vs Buy&Hold/benchmarks ECH/^DJI (cum_return/
-  Sharpe/maxDD) + cards por modelo (LSTM/Prophet/XGBoost/RF) con métricas agregadas
-  del walk-forward (symbol NULL) y desglose por símbolo expandible. Ruta + ítem de
-  nav agregados; `database.types.ts` regenerado con `model_metrics`. Deployed.
-  Commit web `b4a33f6`.
-- **Decisiones IA del portal:** confirmar que `/portal/decisiones` lee `ai_decisions`
-  reales (no solo las demo). Filtrar/ordenar por `created_at`.
-- Endpoint FastAPI `/predict/{symbol}` (inferencia on-demand) + apuntar el
-  `StockAnalyzer` del portal al backend real en vez de la edge function demo.
-  Requiere backend desplegado (Fase F) o túnel local — dejar para después de la
-  página Evaluación.
-- Versionar la edge function `yahoo-finance` en el repo (hoy solo vive en Supabase remoto).
-- **OJO web:** repo `web/` aparte (GitHub `Elcarrascou/Tesis-MCD-USACH`, deploy Vercel).
-  Leer `web/CLAUDE.md` antes de tocarla. Credenciales Supabase de lectura (anon key)
-  ya están en la web; `model_metrics` tiene RLS con lectura pública.
-- Portal `/portal/modelos` ya lee `ml_predictions` → ya muestra predicciones reales.
-- Nueva página/sección portal **"Evaluación"**: lee `model_metrics` (RMSE, F1, retorno vs IPSA).
+### Fase E — Integración web ↔ backend ✅ COMPLETA (salvo lo que depende del deploy)
+Objetivo: que la web muestre lo real que ya produce el backend. Datos en Supabase:
+`ml_predictions`, `model_metrics` (Fase C), `ai_decisions` (6 reales `rule-based` + 5 demo).
+- ✅ **Página "Evaluación"** del portal (`web/src/pages/portal/PortalEvaluacion.tsx`,
+  ruta `/portal/evaluacion`): lee `model_metrics` vía `queries.getModelMetrics`
+  (Supabase directo, RLS público, sin backend). Tabla estrategia IA vs Buy&Hold/
+  benchmarks ECH/^DJI (cum_return/Sharpe/maxDD) + cards por modelo (LSTM/Prophet/
+  XGBoost/RF) con métricas agregadas del walk-forward (symbol NULL) y desglose por
+  símbolo expandible. Ítem de nav `ClipboardCheck` agregado en `PortalLayout.tsx`;
+  `database.types.ts` regenerado con `model_metrics`. Commit web `b4a33f6`.
+- ✅ **Decisiones IA del portal:** `/portal/decisiones` ya leía `getAiDecisions(100)`
+  ordenado por `created_at` desc → muestra reales (`rule-based`) + demo. Sin cambios.
+- ✅ **Edge function versionada:** `web/supabase/functions/yahoo-finance/index.ts`
+  (+ README). Antes solo vivía en Supabase remoto. `eslint.config.js` ignora
+  `supabase/functions` (runtime Deno). Commit web `0cffc32`.
+- ⏳ **PENDIENTE (depende de Fase F):** endpoint FastAPI `/predict/{symbol}`
+  (inferencia on-demand) + apuntar el `StockAnalyzer` del portal (`web/src/components/
+  portal/StockAnalyzer.tsx`) al backend real en vez de la edge function demo
+  (`action:'predict'`). Requiere backend desplegado o túnel local → hacer en Fase F.
+- **OJO web:** repo `web/` aparte. Leer `web/CLAUDE.md` antes de tocarla. Workflow
+  obligatorio: `npm run lint && npm run build`, commit, push, `npx vercel deploy
+  --prod --yes`, `npx vercel alias set <url> tesis-mcd-usach.vercel.app`.
 
-### Fase F — Deploy backend (sin servicios de pago)
-- `Dockerfile` + deploy a **Railway free**. Crear repo GitHub para el backend.
-- Cron diario que corre `app.pipeline.predict --write`.
-- CI: extender GitHub Actions para lint/test del backend.
-- Healthchecks, variables de entorno en Railway.
+### Fase F — Deploy backend (sin servicios de pago) 📌 SIGUIENTE
+Repo ya creado y subido: `Elcarrascou/tesis-mcd-backend` (rama `main`). Pasos:
+1. **`Dockerfile`** (no existe aún): base `python:3.12-slim` (NO 3.14 — Prophet).
+   Instalar deps de sistema para Prophet/cmdstanpy (`build-essential`). Deps Python
+   están **divididas**: `requirements.txt` (core/API), `requirements-ml.txt`
+   (PyTorch/Prophet/xgboost/sklearn — pesado), `requirements-dev.txt` (ruff/pytest);
+   también hay `pyproject.toml`. El Dockerfile de prod instala `requirements.txt` +
+   `requirements-ml.txt` (sin dev). Exponer `uvicorn app.main:app --host 0.0.0.0
+   --port $PORT`. `app/main.py` hoy solo tiene `/` y `/health`. Railway
+   inyecta `$PORT`. Imagen pesada (PyTorch+Prophet) → vigilar límites del free tier.
+2. **Deploy a Railway free:** crear proyecto, conectar el repo GitHub, setear envs
+   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (de `backend/.env`), `PYTHONUTF8=1`,
+   y opcional `LLM_ENGINE`/`OLLAMA_URL` (default `rule-based` si no hay Ollama).
+3. **Endpoint `/predict/{symbol}`** en `app/main.py` (hoy solo `/health` y `/`):
+   cargar modelos de `artifacts/` y devolver inferencia on-demand. OJO: `artifacts/`
+   está gitignored → o se entrenan en build (lento) o se versiona aparte / volumen
+   Railway. Decidir estrategia de artefactos.
+4. **Cron diario** `python -m app.pipeline.predict --write` (Railway cron o GitHub
+   Actions scheduled). Considerar también `backtest`/`decide` periódicos.
+5. **CI backend:** nuevo workflow GitHub Actions en `tesis-mcd-backend` (lint `ruff
+   check .` + `pytest`, 22 tests). El repo web ya tiene su CI; este es separado.
+6. **Healthcheck** Railway → `/health`. Verificar arranque y latencia de carga de modelos.
+7. Cerrar Fase E: una vez con URL pública del backend, apuntar `StockAnalyzer` al
+   `/predict` real (ver pendiente arriba) y desplegar la web.
 
 ### DEJAR PARA EL FINAL (instrucción explícita del usuario)
 - 🔌 **Alpaca** — ejecución real de órdenes.
@@ -219,23 +249,27 @@ en Supabase: `ml_predictions` (72), `model_metrics` (92, Fase C), `ai_decisions`
 ---
 
 ## 9. Primer paso en la nueva instancia
-> "Lee `backend/HANDOFF.md` y continúa con la Fase E (integración web↔backend),
->  empezando por la página/sección **Evaluación** que lee `model_metrics`."
+> "Lee `backend/HANDOFF.md` y arranca la **Fase F**: deploy del backend a Railway
+>  free (Dockerfile con Python 3.12, envs Supabase service_role, endpoint
+>  `/predict/{symbol}`, cron `predict --write`, CI con ruff+pytest). Backend ya
+>  está en GitHub `Elcarrascou/tesis-mcd-backend` (rama `main`)."
 
 Antes de codear:
 - Backend: activar venv (`backend/.venv\Scripts\Activate.ps1`), `$env:PYTHONUTF8=1`,
-  confirmar `ruff check .` y `pytest` verdes (22 tests).
-- Web: `cd web`, leer `web/CLAUDE.md`, `npm install`, `npm run dev`.
+  confirmar `ruff check .` y `pytest` verdes (22 tests). Git: local rama `master` ↔
+  remoto `main`. **NO usar `gh` ni GitHub MCP** (no disponibles/sin auth) — git directo.
+- Web (solo si se cierra el pendiente de Fase E): `cd web`, leer `web/CLAUDE.md`,
+  `npm install`. Workflow lint→build→commit→push→vercel deploy→alias.
 
-### Resumen de lo construido (Fases A–D)
+### Resumen de lo construido (Fases A–E)
 | Fase | Entregable | Estado | Commit |
 |---|---|---|---|
 | A | FastAPI + datos Yahoo + cliente Supabase | ✅ | `52612a4` |
 | B | 4 modelos ML reales (LSTM/XGB/Prophet/RF) | ✅ | `80c92d3` |
 | C | Backtesting walk-forward + `model_metrics` | ✅ | `cb6e89e` |
 | D | Agente IA (consolidación + LLM router + stub orden) | ✅ | `7afcb59` |
-| E | Integración web↔backend (página Evaluación, /predict) | 📌 siguiente | — |
-| F | Docker + Railway + cron + CI backend | ⏳ | — |
+| E | Web lee real: pág. Evaluación, decisiones IA, edge fn versionada | ✅ (falta `/predict`, depende de F) | web `b4a33f6`,`0cffc32` |
+| F | Docker + Railway + `/predict` + cron + CI backend | 📌 siguiente | — |
 
 Archivos clave del backend:
 - Modelos: `app/models/{lstm_price,xgb_signal,prophet_trend,rf_risk}.py` (interfaz `base.py`).
