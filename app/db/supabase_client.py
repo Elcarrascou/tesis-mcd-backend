@@ -45,3 +45,39 @@ def insert_metrics(rows: list[dict]) -> None:
     if not rows:
         return
     get_client().table("model_metrics").insert(rows).execute()
+
+
+def get_portfolio() -> list[dict]:
+    """Lee las posiciones del portafolio (cantidad y costo promedio)."""
+    res = (
+        get_client()
+        .table("portfolio")
+        .select("symbol,quantity,avg_price")
+        .execute()
+    )
+    return res.data or []
+
+
+def upsert_portfolio(rows: list[dict]) -> None:
+    """Actualiza la valuación de las posiciones (upsert por symbol único)."""
+    if not rows:
+        return
+    get_client().table("portfolio").upsert(rows, on_conflict="symbol").execute()
+
+
+def get_last_performance() -> dict | None:
+    """Última fila de performance (para el retorno diario encadenado)."""
+    res = (
+        get_client()
+        .table("performance")
+        .select("snapshot_date,total_value")
+        .order("snapshot_date", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return res.data[0] if res.data else None
+
+
+def upsert_performance(row: dict) -> None:
+    """Inserta/actualiza la fila diaria de performance (upsert por snapshot_date)."""
+    get_client().table("performance").upsert(row, on_conflict="snapshot_date").execute()

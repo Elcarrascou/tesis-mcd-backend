@@ -64,7 +64,7 @@
 
 | Fase | Objetivo | Prioridad | Costo | Estado |
 |---|---|---|---|---|
-| **G** | Frescura de datos operacionales | ALTA | Gratis | ⏳ |
+| **G** | Frescura de datos operacionales | ALTA | Gratis | 🟡 G1+G2 ✅ (G3 opcional) |
 | **H** | Riqueza del agente IA (LLM + AUC) | ALTA (académica) | H1 pago bajo, resto gratis | ⏳ |
 | **I** | Ejecución paper trading (Alpaca) | MEDIA | Gratis | ⏳ |
 | **J** | Documentos para comisión | **MÁXIMA (bloqueante)** | Gratis | ⏳ |
@@ -79,19 +79,29 @@
 ### Fase G — Frescura de datos operacionales `[ALTA · gratis]`
 **Objetivo:** que el portal nunca se vea congelado ante la comisión.
 
-- [ ] **G1 · Cron `decide --write` diario.** Nuevo `.github/workflows/decide-cron.yml`
-  (espeja `predict-cron.yml`): `python -m app.pipeline.decide --write` tras el predict.
+- [x] **G1 · Cron `decide --write` diario.** Nuevo `.github/workflows/decide-cron.yml`
+  (espeja `predict-cron.yml`): `python -m app.pipeline.decide --engine rule-based --write`
+  a las 11:10 UTC (10 min tras el predict-cron). Engine `rule-based` (determinista,
+  gratis, sin host LLM) hasta resolver D3/H1.
   - Archivos: `.github/workflows/decide-cron.yml`.
-  - Aceptación: `ai_decisions` recibe filas nuevas cada día (engine según D3).
-- [ ] **G2 · Snapshot operacional diario.** Nuevo `app/pipeline/snapshot.py`:
+  - Aceptación: ✅ `ai_decisions` recibe 6 filas nuevas (verificado corriendo el comando del cron).
+- [x] **G2 · Snapshot operacional diario.** Nuevo `app/pipeline/snapshot.py`:
   - Recalcula `portfolio.current_price/market_value/unrealized_pnl/weight_pct` con
     precios Yahoo (`app/data/yahoo.py`).
   - Inserta fila diaria en `performance` (total_value, daily_return_pct,
     cumulative_return_pct, benchmark_return_pct vs ECH/^DJI).
   - CLI `python -m app.pipeline.snapshot --write` + cron.
-  - Archivos: `app/pipeline/snapshot.py`, `app/db/supabase_client.py` (upsert portfolio
-    + insert performance), `.github/workflows/snapshot-cron.yml`, `tests/test_snapshot.py`.
-  - Aceptación: Dashboard/Ganancias del portal muestran fecha de hoy.
+  - Archivos: `app/pipeline/snapshot.py`, `app/db/supabase_client.py` (`get_portfolio`,
+    `upsert_portfolio`, `get_last_performance`, `upsert_performance`),
+    `.github/workflows/snapshot-cron.yml` (11:20 UTC), `tests/test_snapshot.py` (7 tests).
+  - Modelo: posiciones = fuente de verdad (no se tocan); se recalcula valuación con
+    precio Yahoo + caja fija `CASH_USD=5000`. total_value = equity + caja; retorno
+    acum vs capital inicial (costo+caja); retorno diario vs última fila; benchmark = ECH
+    desde `INCEPTION_DATE=2026-01-02`. `build_snapshot` es función pura (testeable).
+  - Aceptación: ✅ `performance` tiene fila 2026-06-15 (total 52783.18, cum +20.55%,
+    bench ECH +2.80%); portfolio.updated_at = hoy. **OJO:** NVDA muestra pnl muy
+    negativo porque su `avg_price` seed (620) es pre-split — re-sembrar el costo si se
+    quiere demo coherente (fuera de alcance G2).
 - [ ] **G3 (opcional) · Backtest semanal `--write`.** Cron semanal para refrescar
   `model_metrics`. Prophet lento (~10-15 min) → `schedule` con timeout holgado.
 - **Pasos manuales:** confirmar secrets del repo (`SUPABASE_URL`,
@@ -243,3 +253,5 @@ suficiente para la defensa.
 | 2026-06-15 | F | Backend desplegado en Railway; web consume `/predict` real | bk `d4806d6`/`6b0abc4`, web `90a4252` |
 | 2026-06-15 | F | Cron `predict --write` diario operativo (secrets repo seteados) | — |
 | 2026-06-15 | PLAN | Creado este PLAN-FINAL.md | (este commit) |
+| 2026-06-15 | G1 | Cron `decide-cron.yml` diario (engine rule-based); 6 decisiones frescas escritas | (este commit) |
+| 2026-06-15 | G2 | `snapshot.py` + helpers supabase + `snapshot-cron.yml` + 7 tests; performance 2026-06-15 + portfolio revaluado | (este commit) |
