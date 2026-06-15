@@ -3,11 +3,11 @@
 Documento de traspaso para continuar el proyecto en una nueva instancia de chat.
 Última actualización: 2026-06-15 (post Fase F código). Autor: Daniel Carrasco U. (dacarrascu@gmail.com).
 
-**Estado en una línea:** Web en producción. Backend Fases A→E listas + **Fase F
-código completo** (Dockerfile, endpoint `/predict/{symbol}`, CI ruff+pytest 24 tests,
-cron GitHub Actions, artefactos commiteados) — pusheado a `main`. **Falta SOLO acción
-manual del usuario:** secrets del repo + crear proyecto Railway + apuntar la web al
-`/predict` real (ver Fase F → PENDIENTE).
+**Estado en una línea:** Web en producción. Backend **Fases A→F COMPLETAS** y
+desplegado en Railway (https://tesis-mcd-backend-production.up.railway.app). Fase E
+cerrada: la web (`StockAnalyzer`) consume `/predict/{symbol}` real vía `VITE_API_URL`.
+Pendientes menores: secrets del repo para el cron (si no se setearon) y los ítems
+"DEJAR PARA EL FINAL" (Alpaca, LLM de pago, docs).
 Commits backend: `52612a4` (A) → `80c92d3` (B) → `cb6e89e` (C) → `7afcb59` (D)
 → `11b285a` (HANDOFF E) → `d4806d6` (F). Commits web Fase E: `b4a33f6` → `0cffc32`.
 
@@ -236,10 +236,12 @@ Repo: `Elcarrascou/tesis-mcd-backend` (rama `main`). Commit Fase F: `d4806d6`.
 - **C. Verificar deploy:** `GET <railway-url>/health` → `{"status":"ok"}`;
   `GET <railway-url>/predict/NVDA` → 4 predicciones. Medir latencia de arranque
   (carga de modelos).
-- **D. Cerrar Fase E:** con la URL pública, apuntar `web/src/components/portal/
-  StockAnalyzer.tsx` al `/predict/{symbol}` real (hoy llama edge fn demo) + CORS:
-  agregar el dominio en `config.allowed_origins` si hace falta → deploy web
-  (lint→build→commit→push→vercel→alias, ver `web/CLAUDE.md`).
+- ✅ **D. Fase E cerrada:** `StockAnalyzer` (commit web `90a4252`) muestra los 4
+  modelos reales vía `GET /predict/{symbol}` (env `VITE_API_URL` en Vercel = URL
+  Railway). Backend live en **https://tesis-mcd-backend-production.up.railway.app**
+  (`/health` ok, `/predict/NVDA` 4 modelos, CORS para el dominio vercel ok). Web
+  desplegada y aliaseada a tesis-mcd-usach.vercel.app. Panel híbrido: viz demo Yahoo
+  + panel "Modelos entrenados" reales (degrada solo a demo si el backend cae).
 
 ### DEJAR PARA EL FINAL (instrucción explícita del usuario)
 - 🔌 **Alpaca** — ejecución real de órdenes.
@@ -282,8 +284,8 @@ Antes de codear:
 | B | 4 modelos ML reales (LSTM/XGB/Prophet/RF) | ✅ | `80c92d3` |
 | C | Backtesting walk-forward + `model_metrics` | ✅ | `cb6e89e` |
 | D | Agente IA (consolidación + LLM router + stub orden) | ✅ | `7afcb59` |
-| E | Web lee real: pág. Evaluación, decisiones IA, edge fn versionada | ✅ (falta `/predict`, depende de F) | web `b4a33f6`,`0cffc32` |
-| F | Docker + `/predict` + cron + CI backend (24 tests) | 🚧 código listo, falta Railway+secrets manual | `d4806d6` |
+| E | Web lee real: Evaluación, decisiones IA, edge fn, `StockAnalyzer`→`/predict` | ✅ | web `b4a33f6`,`0cffc32`,`90a4252` |
+| F | Docker + `/predict` + cron + CI + deploy Railway (24 tests) | ✅ live en Railway | `d4806d6` |
 
 Archivos clave del backend:
 - Modelos: `app/models/{lstm_price,xgb_signal,prophet_trend,rf_risk}.py` (interfaz `base.py`).
