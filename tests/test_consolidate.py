@@ -71,6 +71,25 @@ def test_intended_order_stub():
     assert intended_order(hold) is None  # hold no genera orden
 
 
+def test_intended_order_qty_sizing():
+    buy = consolidate("TEST", _set("up", "buy", "up", "bajo"))  # confianza alta
+    # sin contexto -> qty None (comportamiento previo)
+    assert intended_order(buy)["quantity"] is None
+    # con precio + valor de portafolio -> entero de acciones > 0
+    o = intended_order(buy, price=100.0, portfolio_value=100_000.0)
+    assert o["quantity"] is not None and o["quantity"] > 0
+    assert float(o["quantity"]).is_integer()
+    # ya teniendo más acciones que el objetivo -> no compra (qty 0)
+    o2 = intended_order(buy, price=100.0, portfolio_value=100_000.0, current_qty=10_000)
+    assert o2["quantity"] == 0
+
+
+def test_intended_order_sell_reduces_position():
+    sell = consolidate("TEST", _set("down", "sell", "down", "bajo"))
+    o = intended_order(sell, price=50.0, portfolio_value=100_000.0, current_qty=100)
+    assert 0 < o["quantity"] <= 100  # recorta, nunca vende más de lo que hay
+
+
 def test_missing_random_forest_defaults_medio():
     preds = [_p("lstm", "up", 70.0, value=100.0), _p("xgboost", "buy", 70.0)]
     c = consolidate("TEST", preds)

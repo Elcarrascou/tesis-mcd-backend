@@ -37,6 +37,27 @@ def test_accuracy_and_f1():
     assert 0.0 <= M.f1_macro(yt, yp) <= 100.0
 
 
+def test_auc_perfect_separation():
+    # probabilidad de la clase verdadera siempre la más alta y separable -> AUC 100%
+    labels = ["sell", "hold", "buy"]
+    yt = ["buy", "sell", "hold", "buy"]
+    proba = [
+        {"sell": 0.1, "hold": 0.1, "buy": 0.8},
+        {"sell": 0.8, "hold": 0.1, "buy": 0.1},
+        {"sell": 0.1, "hold": 0.8, "buy": 0.1},
+        {"sell": 0.2, "hold": 0.2, "buy": 0.6},
+    ]
+    assert M.auc_macro(yt, proba, labels) == 100.0
+
+
+def test_auc_empty_and_missing_class():
+    assert np.isnan(M.auc_macro([], [], ["a", "b"]))
+    # solo una clase presente en y_true -> esa clase se omite; sin AUC válido -> nan
+    yt = ["buy", "buy"]
+    proba = [{"buy": 0.9, "sell": 0.1}, {"buy": 0.8, "sell": 0.2}]
+    assert np.isnan(M.auc_macro(yt, proba, ["sell", "buy"]))
+
+
 def test_cumulative_return():
     # +10% luego +10% -> 21%
     assert abs(M.cumulative_return([0.1, 0.1]) - 21.0) < 1e-9

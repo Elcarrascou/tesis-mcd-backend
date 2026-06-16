@@ -140,7 +140,11 @@ def walk_forward_symbol(
                 if labels is None or date not in labels.index:
                     continue
                 records.append(
-                    {"true_label": str(labels.loc[date]), "pred_label": str(pred.signal)}
+                    {
+                        "true_label": str(labels.loc[date]),
+                        "pred_label": str(pred.signal),
+                        "proba": pred.proba,
+                    }
                 )
     return records
 
@@ -181,6 +185,10 @@ def _metrics_from_records(
         pred = [r["pred_label"] for r in recs]
         add("accuracy", M.accuracy(true, pred))
         add("f1_macro", M.f1_macro(true, pred))
+        probas = [r.get("proba") for r in recs]
+        if all(p is not None for p in probas):
+            labels = sorted({c for p in probas for c in p} | set(true))
+            add("auc", M.auc_macro(true, probas, labels))
     return rows
 
 

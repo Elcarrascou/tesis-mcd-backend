@@ -2,7 +2,8 @@ name: Decide cron
 
 # Agente IA diario -> escribe decisiones en Supabase (ai_decisions).
 # Espeja predict-cron.yml y corre justo despues (consume las predicciones frescas).
-# Motor rule-based (determinista, gratis, sin host LLM); cambiar a anthropic en Fase H1.
+# Motor anthropic (Claude Haiku reescribe el rationale; la decision sigue siendo
+# determinista/auditable). Si falta ANTHROPIC_API_KEY el router cae a rule-based.
 on:
   schedule:
     # 11:10 UTC ~ 07:10 Chile, 10 min despues del predict-cron.
@@ -31,4 +32,5 @@ jobs:
           PYTHONUTF8: "1"
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python -m app.pipeline.decide --engine rule-based --write
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m app.pipeline.decide --engine anthropic --write

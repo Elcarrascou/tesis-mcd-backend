@@ -40,10 +40,10 @@
 **⚠️ Huecos para el cierre (lo que cubre este plan):**
 1. Documentos comisión (anteproyecto PDF + láminas) = placeholders. **Bloqueante.**
 2. Datos operacionales congelados (portfolio/performance/movements). Portal se ve detenido.
-3. Agente sin LLM (decisiones `rule-based`; rationale explicable sin usar).
-4. `decide --write` sin cron (decisiones no se renuevan).
-5. Ejecución = stub (`execute.py` `intended`); Alpaca pendiente.
-6. AUC ROC multiclase pendiente (requiere exponer probabilidades en `predict_one`).
+3. ~~Agente sin LLM~~ → **H1 ✅** rationale con Claude Haiku 4.5 (`engine=anthropic`).
+4. ~~`decide --write` sin cron~~ → **G1 ✅** `decide-cron.yml` diario.
+5. Ejecución = stub (`execute.py` `intended`); qty ya dimensionada (H3), Alpaca pendiente (Fase I).
+6. ~~AUC ROC multiclase pendiente~~ → **H2 ✅** métrica `auc` en `model_metrics` + página Evaluación.
 
 ---
 
@@ -53,7 +53,7 @@
 |---|---|---|---|
 | D1 | Por dónde arrancar | J docs / G frescura / H agente / todo en orden | ⏳ |
 | D2 | Alpaca paper trading (gratis) | Sí / No | ⏳ |
-| D3 | Rationale LLM | Claude API (pago bajo) / Ollama (gratis) / rule-based | ⏳ |
+| D3 | Rationale LLM | Claude API (pago bajo) / Ollama (gratis) / rule-based | ✅ Claude API (Haiku 4.5) |
 | D4 | Autoría documentos | Yo redacto borrador / esqueleto+tú rellenas / tú los provees | ⏳ |
 | D5 | Supabase Pro | Cuándo (ver §7) | ⏳ |
 | D6 | OpenClaw en Hostinger | Cuándo / si va (ver §8) | ⏳ |
@@ -65,7 +65,7 @@
 | Fase | Objetivo | Prioridad | Costo | Estado |
 |---|---|---|---|---|
 | **G** | Frescura de datos operacionales | ALTA | Gratis | 🟡 G1+G2 ✅ (G3 opcional) |
-| **H** | Riqueza del agente IA (LLM + AUC) | ALTA (académica) | H1 pago bajo, resto gratis | ⏳ |
+| **H** | Riqueza del agente IA (LLM + AUC) | ALTA (académica) | H1 pago bajo, resto gratis | ✅ H1+H2+H3 |
 | **I** | Ejecución paper trading (Alpaca) | MEDIA | Gratis | ⏳ |
 | **J** | Documentos para comisión | **MÁXIMA (bloqueante)** | Gratis | ⏳ |
 | **K** | Pulido y QA final | MEDIA | Gratis | ⏳ |
@@ -110,21 +110,32 @@
 ### Fase H — Riqueza del agente IA `[ALTA académica]`
 **Objetivo:** decisiones explicables y métrica robusta para defender los modelos.
 
-- [ ] **H1 · Rationale LLM real** (según D3).
-  - Si **Claude API:** setear `ANTHROPIC_API_KEY` en env (Railway + secret repo),
-    `LLM_ENGINE=anthropic`, modelo `claude-haiku-4-5` (barato). `decide --engine anthropic`.
-    El LLM **solo reescribe** el rationale; la decisión sigue determinista (auditable).
-  - Si **Ollama:** requiere host con el modelo corriendo (Railway free no es ideal →
-    típicamente junto a §8 OpenClaw/Hostinger). Mientras tanto fallback `rule-based`.
-  - Archivos: `app/agent/llm_router.py` (ya soporta routing), `config.py`, workflow del cron G1.
-  - Aceptación: `ai_decisions.engine` = `anthropic` con rationale legible y específico.
-- [ ] **H2 · AUC ROC multiclase.** Exponer probabilidades por clase en `predict_one`
-  (XGBoost/RF) → calcular AUC en `app/pipeline/backtest.py` + `app/ml/metrics.py`.
-  - Archivos: `app/models/{xgb_signal,rf_risk}.py`, `app/ml/metrics.py`,
-    `app/pipeline/backtest.py`, `tests/test_metrics.py`. Re-correr backtest `--write`.
-  - Aceptación: `model_metrics` con métrica `auc`; página Evaluación la muestra.
-- [ ] **H3 · Dimensionar orden (qty).** En `app/agent/execute.py`, calcular cantidad
-  según peso objetivo y valor de `portfolio`. Hoy el stub no calcula qty.
+- [x] **H1 · Rationale LLM real** (D3 resuelto → **Claude API**).
+  - Modelo `claude-haiku-4-5` (barato). `anthropic_model` default en `config.py`; prompt
+    endurecido a TEXTO PLANO (sin markdown) en `app/agent/prompts.py`. `decide-cron.yml`
+    ahora corre `--engine anthropic` con secret `ANTHROPIC_API_KEY` (router cae a
+    `rule-based` si falta). El LLM **solo reescribe** el rationale; decisión determinista.
+  - Archivos: `config.py`, `app/agent/prompts.py`, `.github/workflows/decide-cron.yml`.
+  - Aceptación: ✅ 6 `ai_decisions` con `engine=anthropic:claude-haiku-4-5` y rationale
+    legible/específico en texto plano (verificado con `decide --engine anthropic --write`).
+  - **Pasos manuales (usuario):** agregar `ANTHROPIC_API_KEY` como (a) secret del repo
+    GitHub `tesis-mcd-backend` (para el cron) y (b) variable de entorno en Railway (para
+    `/decide` on-demand si se usa). **ROTAR la key compartida en chat** (quedó expuesta).
+- [x] **H2 · AUC ROC multiclase.** `predict_one` de XGBoost/RF ahora expone `proba`
+  (dict clase→prob) vía nuevo campo `Prediction.proba` (excluido de `ml_predictions`).
+  `app/ml/metrics.py::auc_macro` (One-vs-Rest macro, %); el backtest la calcula para los
+  clasificadores.
+  - Archivos: `app/models/base.py`, `app/models/{xgb_signal,rf_risk}.py`, `app/ml/metrics.py`,
+    `app/pipeline/backtest.py`, `tests/test_metrics.py`, web `PortalEvaluacion.tsx`.
+  - Aceptación: ✅ `model_metrics` con métrica `auc` (RF global 78.2%, XGBoost 53.6%);
+    página Evaluación la muestra (CLASSIF_METRICS += 'auc').
+- [x] **H3 · Dimensionar orden (qty).** `app/agent/execute.py::size_order` calcula la
+  cantidad de acciones: buy → lleva la posición al peso objetivo (`TARGET_WEIGHT_PCT=15%`)
+  escalado por confianza; sell/reduce → recorta la posición por confianza. `intended_order`
+  acepta `price`/`portfolio_value`/`current_qty` opcionales (None si faltan → comportamiento
+  previo). Listo para conectar en Fase I.
+  - Archivos: `app/agent/execute.py`, `tests/test_consolidate.py`.
+  - Aceptación: ✅ tests de sizing (buy>0, no compra si ya supera objetivo, sell ≤ posición).
 
 ### Fase I — Ejecución paper trading (Alpaca) `[MEDIA · gratis]` (según D2)
 **Objetivo:** "el sistema ejecuta" — órdenes reales simuladas, sin dinero real.
@@ -254,4 +265,7 @@ suficiente para la defensa.
 | 2026-06-15 | F | Cron `predict --write` diario operativo (secrets repo seteados) | — |
 | 2026-06-15 | PLAN | Creado este PLAN-FINAL.md | (este commit) |
 | 2026-06-15 | G1 | Cron `decide-cron.yml` diario (engine rule-based); 6 decisiones frescas escritas | (este commit) |
-| 2026-06-15 | G2 | `snapshot.py` + helpers supabase + `snapshot-cron.yml` + 7 tests; performance 2026-06-15 + portfolio revaluado | (este commit) |
+| 2026-06-15 | G2 | `snapshot.py` + helpers supabase + `snapshot-cron.yml` + 7 tests; performance 2026-06-15 + portfolio revaluado | 5315d1e |
+| 2026-06-16 | H1 | Rationale Claude Haiku 4.5 (prompt texto plano); decide-cron `--engine anthropic`; 6 decisiones `anthropic:claude-haiku-4-5` | (este commit) |
+| 2026-06-16 | H2 | `Prediction.proba` + `auc_macro` (OvR); backtest clf re-escrito con AUC (RF 78.2% / XGB 53.6%); web Evaluación muestra AUC | (este commit) |
+| 2026-06-16 | H3 | `size_order` en execute.py (qty por peso objetivo × confianza); tests sizing | (este commit) |

@@ -61,6 +61,7 @@ class XGBoostSignalModel(BaseModel):
             signal=CLASSES[k],
             confidence=round(float(proba[k]) * 100, 2),
             horizon_days=HORIZON,
+            proba={c: float(proba[i]) for i, c in enumerate(CLASSES)},
         )
 
     def _path(self, directory: Path) -> Path:

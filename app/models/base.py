@@ -29,9 +29,14 @@ class Prediction:
     signal: str | None = None
     confidence: float | None = None
     horizon_days: int | None = None
+    # Probabilidades por clase (solo clasificadores). NO va a ml_predictions; se usa
+    # para métricas como AUC ROC en el backtest.
+    proba: dict[str, float] | None = None
 
     def to_row(self) -> dict:
-        return asdict(self)
+        row = asdict(self)
+        row.pop("proba", None)  # no es columna de ml_predictions
+        return row
 
 
 class BaseModel(abc.ABC):

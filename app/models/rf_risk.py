@@ -59,6 +59,7 @@ class RandomForestRiskModel(BaseModel):
             signal=classes[k],
             confidence=round(float(proba[k]) * 100, 2),
             horizon_days=HORIZON,
+            proba={str(c): float(proba[i]) for i, c in enumerate(classes)},
         )
 
     def _path(self, directory: Path) -> Path:

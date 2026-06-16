@@ -10,10 +10,10 @@ Separadas en su propio módulo para poder testearlas sin red ni modelos.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 TRADING_DAYS = 252
 
@@ -70,6 +70,33 @@ def f1_macro(y_true: Sequence[str], y_pred: Sequence[str]) -> float:
     if len(y_true) == 0:
         return float("nan")
     return float(f1_score(y_true, y_pred, average="macro", zero_division=0) * 100)
+
+
+def auc_macro(
+    y_true: Sequence[str],
+    proba_rows: Sequence[Mapping[str, float]],
+    labels: Sequence[str],
+) -> float:
+    """AUC ROC multiclase One-vs-Rest, promedio macro (%).
+
+    `proba_rows` son las probabilidades por clase de cada predicción (dict
+    clase->prob), alineadas con `y_true`. Las clases que no aparecen en `y_true`
+    (AUC indefinido) se omiten del promedio.
+    """
+    if len(y_true) == 0:
+        return float("nan")
+    labels = list(labels)
+    # Matriz indicadora n x k (One-vs-Rest) construida a mano: label_binarize
+    # colapsa el caso binario a una sola columna.
+    Y = np.array([[1 if t == c else 0 for c in labels] for t in y_true])
+    P = np.array([[float(row.get(c, 0.0)) for c in labels] for row in proba_rows])
+    aucs: list[float] = []
+    for j in range(len(labels)):
+        col = Y[:, j]
+        if col.min() == col.max():  # una sola clase presente → AUC indefinido
+            continue
+        aucs.append(float(roc_auc_score(col, P[:, j])))
+    return float(np.mean(aucs) * 100) if aucs else float("nan")
 
 
 def cumulative_return(returns: Sequence[float]) -> float:
