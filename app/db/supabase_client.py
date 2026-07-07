@@ -65,6 +65,24 @@ def upsert_portfolio(rows: list[dict]) -> None:
     get_client().table("portfolio").upsert(rows, on_conflict="symbol").execute()
 
 
+def replace_movements(rows: list[dict]) -> None:
+    """Reemplaza TODOS los movimientos (re-seed coherente, ver app/pipeline/reseed.py)."""
+    if not rows:
+        return
+    client = get_client()
+    client.table("movements").delete().gte("id", 0).execute()
+    client.table("movements").insert(rows).execute()
+
+
+def replace_performance(rows: list[dict]) -> None:
+    """Reemplaza TODA la serie de performance (backfill con precios reales)."""
+    if not rows:
+        return
+    client = get_client()
+    client.table("performance").delete().gte("id", 0).execute()
+    client.table("performance").insert(rows).execute()
+
+
 def get_last_performance() -> dict | None:
     """Última fila de performance (para el retorno diario encadenado)."""
     res = (

@@ -39,7 +39,8 @@
 
 **⚠️ Huecos para el cierre (lo que cubre este plan):**
 1. Documentos comisión (anteproyecto PDF + láminas) = placeholders. **Bloqueante.**
-2. Datos operacionales congelados (portfolio/performance/movements). Portal se ve detenido.
+2. ~~Datos operacionales congelados/incoherentes~~ → **G4 ✅** re-seed con precios
+   reales Yahoo (NVDA pre-split corregido, performance backfilled desde inception).
 3. ~~Agente sin LLM~~ → **H1 ✅** rationale con Claude Haiku 4.5 (`engine=anthropic`).
 4. ~~`decide --write` sin cron~~ → **G1 ✅** `decide-cron.yml` diario.
 5. Ejecución = stub (`execute.py` `intended`); qty ya dimensionada (H3), Alpaca pendiente (Fase I).
@@ -102,6 +103,15 @@
     bench ECH +2.80%); portfolio.updated_at = hoy. **OJO:** NVDA muestra pnl muy
     negativo porque su `avg_price` seed (620) es pre-split — re-sembrar el costo si se
     quiere demo coherente (fuera de alcance G2).
+- [x] **G4 · Re-seed coherente con precios reales** (`app/pipeline/reseed.py`).
+  Corrige el seed inventado: las 6 posiciones se compran el primer día hábil ≥
+  `INCEPTION_DATE` (2026-01-02) al cierre real de Yahoo (NVDA 188.84 post-split,
+  antes 620 pre-split → pnl −7.6k falso); `movements` = esas 6 compras
+  (`alpaca_order_id` NULL hasta Fase I); `performance` reconstruida día hábil a
+  día (126 filas 2026-01-02→2026-07-06, cum +1.93% vs ECH −0.21%, verificable
+  contra el mercado); `portfolio` revaluado. Helpers `replace_movements`/
+  `replace_performance` en supabase_client. `tests/test_reseed.py` (7 tests,
+  42 totales). El snapshot diario encadena sin salto sobre la nueva serie.
 - [ ] **G3 (opcional) · Backtest semanal `--write`.** Cron semanal para refrescar
   `model_metrics`. Prophet lento (~10-15 min) → `schedule` con timeout holgado.
 - **Pasos manuales:** confirmar secrets del repo (`SUPABASE_URL`,
@@ -269,3 +279,4 @@ suficiente para la defensa.
 | 2026-06-16 | H1 | Rationale Claude Haiku 4.5 (prompt texto plano); decide-cron `--engine anthropic`; 6 decisiones `anthropic:claude-haiku-4-5` | (este commit) |
 | 2026-06-16 | H2 | `Prediction.proba` + `auc_macro` (OvR); backtest clf re-escrito con AUC (RF 78.2% / XGB 53.6%); web Evaluación muestra AUC | (este commit) |
 | 2026-06-16 | H3 | `size_order` en execute.py (qty por peso objetivo × confianza); tests sizing | (este commit) |
+| 2026-07-06 | G4 | Re-seed coherente: compras reales 2026-01-02, performance backfilled 126 días, NVDA post-split; 7 tests nuevos | (este commit) |
