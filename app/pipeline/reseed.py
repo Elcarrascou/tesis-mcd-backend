@@ -12,7 +12,8 @@ Modelo resultante (auditable contra Yahoo Finance):
   queda NULL hasta la Fase I con Alpaca paper).
 - `performance` se reconstruye día hábil a día hábil desde inception hasta hoy:
   total_value = sum(qty * close) + caja fija; retorno acumulado vs capital
-  inicial (costo + caja); retorno diario encadenado; benchmark = buy&hold ECH.
+  inicial (costo + caja); retorno diario encadenado; benchmark = buy&hold del
+  BENCHMARK_SYMBOL de snapshot.py (SPY, S&P 500).
 - `portfolio` conserva las cantidades y se revalúa al último cierre.
 
 Uso:

@@ -12,8 +12,9 @@ Modelo de datos:
   total_value = equity (suma de market_value) + caja.
 - Retorno acumulado = total_value vs capital inicial (costo de las posiciones +
   caja). Retorno diario = total_value vs la última fila de `performance`.
-- Benchmark = retorno buy&hold del ETF ECH (proxy del IPSA, ver HANDOFF) desde la
-  fecha de inicio del portafolio.
+- Benchmark = retorno buy&hold del ETF SPY (S&P 500) desde la fecha de inicio
+  del portafolio: los activos son acciones listadas en EE.UU., por lo que el
+  índice de referencia debe ser del mismo mercado.
 
 Uso:
     python -m app.pipeline.snapshot            # dry-run (solo imprime)
@@ -43,9 +44,10 @@ CASH_USD = 5000.0
 # Fecha de inicio del portafolio: base del retorno acumulado y del benchmark.
 INCEPTION_DATE = "2026-01-02"
 
-# Benchmark de contexto: ETF iShares MSCI Chile, proxy del IPSA (Yahoo descontinuó
-# ^IPSA en 2019; mismo criterio que app/pipeline/backtest.py).
-BENCHMARK_SYMBOL = "ECH"
+# Benchmark del portafolio: SPY (SPDR S&P 500 ETF). El portafolio es 100%
+# acciones listadas en EE.UU. → el benchmark debe ser del mismo mercado.
+# (ECH/^DJI siguen como benchmarks comparativos solo en el backtest.)
+BENCHMARK_SYMBOL = "SPY"
 
 
 def fetch_prices(symbols: list[str]) -> dict[str, float]:

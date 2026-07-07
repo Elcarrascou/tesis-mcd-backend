@@ -291,3 +291,4 @@ suficiente para la defensa.
 | 2026-06-16 | H3 | `size_order` en execute.py (qty por peso objetivo × confianza); tests sizing | (este commit) |
 | 2026-07-06 | G4 | Re-seed coherente: compras reales 2026-01-02, performance backfilled 126 días, NVDA post-split; 7 tests nuevos | (este commit) |
 | 2026-07-06 | J1+K1 | Bloque 5 web: PDF anteproyecto (24 págs) con visor+descarga; equity curve y retorno vs benchmark en Ganancias; bar charts AUC con línea de azar en Evaluación; skeletons/estados vacíos + a11y | web `d5e246b` |
+| 2026-07-07 | FIX benchmark | Benchmark del portafolio ECH→SPY (activos US ⇒ índice US; mismatch detectado en Ganancias). `snapshot.py BENCHMARK_SYMBOL="SPY"`, reseed re-pobló las 126 filas con cierres reales SPY. Resultado honesto: cum +1,93% vs SPY +10,55% (alpha −8,6pp). ECH/^DJI siguen solo como benchmarks del backtest. Web labels + anteproyecto (§ sistema en producción) corregidos, PDF regenerado | (este commit) + web `74b74c9` |
