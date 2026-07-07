@@ -164,7 +164,7 @@
 ### Fase J — Documentos para comisión `[MÁXIMA · BLOQUEANTE]` (según D4)
 **Objetivo:** entregables formales para la defensa.
 
-- [ ] **J1 · Anteproyecto PDF.** Documento formal: portada, resumen, problema,
+- [x] **J1 · Anteproyecto PDF.** Documento formal: portada, resumen, problema,
   objetivos/hipótesis, marco teórico (4 modelos + IA agéntica), metodología
   (walk-forward sin look-ahead, proxy ECH del IPSA), arquitectura (Railway+Vercel+
   Supabase), resultados backtest, planificación, referencias. Generar con skill
@@ -172,7 +172,11 @@
   - Archivos: `web/public/Anteproyecto_Tesis_MCD_2026.pdf`,
     `web/src/pages/AnteproyectoPage.tsx` (activar botón descarga, quitar "próximamente"),
     `web/src/data/presentation.ts` (`ANTEPROYECTO_SECTIONS.done`).
-  - Aceptación: botón "Descargar PDF" funcional en la web.
+  - Aceptación: ✅ botón "Descargar PDF" funcional + visor embebido en la web
+    (Bloque 5). PDF de 24 págs generado desde `ANTEPROYECTO.md` (Chrome headless
+    + KaTeX; borrador docx en `backend/docs/`, commit `6053c5e`). Si se quiere la
+    versión Word con formato institucional, exportar `ANTEPROYECTO.docx` a PDF y
+    reemplazar `web/public/Anteproyecto_Tesis_MCD_2026.pdf`.
 - [ ] **J2 · Láminas presentación (.pptx).** Narrativa: problema → datos IPSA/ECH/Dow →
   4 modelos ML → backtest sin look-ahead → agente OpenClaw → arquitectura → demo en
   vivo → resultados/conclusiones. Generar con skill `pptx`.
@@ -184,7 +188,13 @@
   falla la red. → `PLAN-DEMO.md` o sección en este archivo.
 
 ### Fase K — Pulido y QA final `[MEDIA · gratis]`
-- [ ] **K1** Revisar las 6 páginas del portal con datos frescos + estados vacíos.
+- [x] **K1** Revisar las 6 páginas del portal con datos frescos + estados vacíos.
+  ✅ Bloque 5 (web `d5e246b`): skeletons shimmer consistentes (`QueryState`,
+  variantes page/block), estado vacío unificado, a11y (focus-visible,
+  aria-labels, tabular-nums, prefers-reduced-motion). Gráficos nuevos:
+  curva de equity + retorno acumulado vs benchmark (Ganancias, 126 filas
+  reales) y bar charts AUC/accuracy/F1 con línea de azar 50% (Evaluación,
+  RF 78,2% vs XGB 53,6%).
 - [ ] **K2** Verificar acceso público (Vercel Deployment Protection OFF) + hoja de credenciales.
 - [ ] **K3** READMEs de ambos repos + diagrama de arquitectura actualizado (incluir Railway).
 - [ ] **K4** Ensayo completo de defensa (cronometrar, anticipar preguntas del comité).
@@ -280,3 +290,4 @@ suficiente para la defensa.
 | 2026-06-16 | H2 | `Prediction.proba` + `auc_macro` (OvR); backtest clf re-escrito con AUC (RF 78.2% / XGB 53.6%); web Evaluación muestra AUC | (este commit) |
 | 2026-06-16 | H3 | `size_order` en execute.py (qty por peso objetivo × confianza); tests sizing | (este commit) |
 | 2026-07-06 | G4 | Re-seed coherente: compras reales 2026-01-02, performance backfilled 126 días, NVDA post-split; 7 tests nuevos | (este commit) |
+| 2026-07-06 | J1+K1 | Bloque 5 web: PDF anteproyecto (24 págs) con visor+descarga; equity curve y retorno vs benchmark en Ganancias; bar charts AUC con línea de azar en Evaluación; skeletons/estados vacíos + a11y | web `d5e246b` |
