@@ -164,7 +164,13 @@
 ### Fase J — Documentos para comisión `[MÁXIMA · BLOQUEANTE]` (según D4)
 **Objetivo:** entregables formales para la defensa.
 
-- [x] **J1 · Anteproyecto PDF.** Documento formal: portada, resumen, problema,
+- [x] **J1 · Anteproyecto PDF.** **ACTUALIZADO 2026-08-01:** el documento OFICIAL
+  es el PDF redactado por el AUTOR (19 págs; resumen, intro, hipótesis/objetivo,
+  marco teórico, referencias), publicado en `web/public/Anteproyecto_Tesis_MCD_2026.pdf`
+  (commit web `a078932`). D4 resuelta: autor redacta. El borrador
+  `backend/docs/ANTEPROYECTO.{md,docx}` queda como insumo para el informe FINAL
+  (metodología walk-forward, resultados, AUC). Detalle original de la tarea:
+  Documento formal: portada, resumen, problema,
   objetivos/hipótesis, marco teórico (4 modelos + IA agéntica), metodología
   (walk-forward sin look-ahead, proxy ECH del IPSA), arquitectura (Railway+Vercel+
   Supabase), resultados backtest, planificación, referencias. Generar con skill
@@ -290,5 +296,6 @@ suficiente para la defensa.
 | 2026-06-16 | H2 | `Prediction.proba` + `auc_macro` (OvR); backtest clf re-escrito con AUC (RF 78.2% / XGB 53.6%); web Evaluación muestra AUC | (este commit) |
 | 2026-06-16 | H3 | `size_order` en execute.py (qty por peso objetivo × confianza); tests sizing | (este commit) |
 | 2026-07-06 | G4 | Re-seed coherente: compras reales 2026-01-02, performance backfilled 126 días, NVDA post-split; 7 tests nuevos | (este commit) |
+| 2026-08-01 | J1 | Anteproyecto OFICIAL (PDF del autor, 19 págs) publicado en /anteproyecto; secciones e índice actualizados | web `a078932` |
 | 2026-07-06 | J1+K1 | Bloque 5 web: PDF anteproyecto (24 págs) con visor+descarga; equity curve y retorno vs benchmark en Ganancias; bar charts AUC con línea de azar en Evaluación; skeletons/estados vacíos + a11y | web `d5e246b` |
 | 2026-07-07 | FIX benchmark | Benchmark del portafolio ECH→SPY (activos US ⇒ índice US; mismatch detectado en Ganancias). `snapshot.py BENCHMARK_SYMBOL="SPY"`, reseed re-pobló las 126 filas con cierres reales SPY. Resultado honesto: cum +1,93% vs SPY +10,55% (alpha −8,6pp). ECH/^DJI siguen solo como benchmarks del backtest. Web labels + anteproyecto (§ sistema en producción) corregidos, PDF regenerado | (este commit) + web `74b74c9` |
